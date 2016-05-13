@@ -13,8 +13,6 @@ typedef NS_ENUM(NSUInteger, MMNumberKeyboardButton) {
     MMNumberKeyboardButtonNumberMax = MMNumberKeyboardButtonNumberMin + 10, // Ten digits.
     MMNumberKeyboardButtonBackspace,
     MMNumberKeyboardButtonDone,
-    MMNumberKeyboardButtonSpecial,
-    MMNumberKeyboardButtonDecimalPoint,
     MMNumberKeyboardButtonNone = NSNotFound,
 };
 
@@ -125,7 +123,6 @@ static const CGFloat MMNumberKeyboardPadSpacing = 8.0f;
     }
     
     UIImage *backspaceImage = [self.class _keyboardImageNamed:@"MMNumberKeyboardDeleteKey.png"];
-    UIImage *dismissImage = [self.class _keyboardImageNamed:@"MMNumberKeyboardDismissKey.png"];
     
     UIButton *backspaceButton = [_MMNumberKeyboardButton keyboardButtonWithStyle:MMNumberKeyboardButtonStyleGray];
     [backspaceButton setImage:[backspaceImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate] forState:UIControlStateNormal];
@@ -134,23 +131,11 @@ static const CGFloat MMNumberKeyboardPadSpacing = 8.0f;
     
     [buttonDictionary setObject:backspaceButton forKey:@(MMNumberKeyboardButtonBackspace)];
     
-    UIButton *specialButton = [_MMNumberKeyboardButton keyboardButtonWithStyle:MMNumberKeyboardButtonStyleGray];
-    
-    [buttonDictionary setObject:specialButton forKey:@(MMNumberKeyboardButtonSpecial)];
-    
     UIButton *doneButton = [_MMNumberKeyboardButton keyboardButtonWithStyle:MMNumberKeyboardButtonStyleDone];
     [doneButton.titleLabel setFont:doneButtonFont];
     [doneButton setTitle:UIKitLocalizedString(@"Done") forState:UIControlStateNormal];
     
     [buttonDictionary setObject:doneButton forKey:@(MMNumberKeyboardButtonDone)];
-    
-    UIButton *decimalPointButton = [_MMNumberKeyboardButton keyboardButtonWithStyle:MMNumberKeyboardButtonStyleWhite];
-    
-    NSLocale *locale = self.locale ?: [NSLocale currentLocale];
-    NSString *decimalSeparator = [locale objectForKey:NSLocaleDecimalSeparator];
-    [decimalPointButton setTitle:decimalSeparator ?: @"." forState:UIControlStateNormal];
-    
-    [buttonDictionary setObject:decimalPointButton forKey:@(MMNumberKeyboardButtonDecimalPoint)];
     
     for (UIButton *button in buttonDictionary.objectEnumerator) {
         [button setExclusiveTouch:YES];
@@ -167,9 +152,6 @@ static const CGFloat MMNumberKeyboardPadSpacing = 8.0f;
     
     // Initialize an array for the separators.
     self.separatorViews = [NSMutableArray array];
-    
-    // Add default action.
-    [self configureSpecialKeyWithImage:dismissImage target:self action:@selector(_dismissKeyboard:)];
     
     // Add default return key title.
     [self setReturnKeyTitle:[self defaultReturnKeyTitle]];
@@ -276,27 +258,6 @@ static const CGFloat MMNumberKeyboardPadSpacing = 8.0f;
             [self _dismissKeyboard:button];
         }
     }
-    
-    // Handle special key.
-    else if (keyboardButton == MMNumberKeyboardButtonSpecial) {
-        dispatch_block_t handler = self.specialKeyHandler;
-        if (handler) {
-            handler();
-        }
-    }
-    
-    // Handle .
-    else if (keyboardButton == MMNumberKeyboardButtonDecimalPoint) {
-        NSString *decimalText = [button titleForState:UIControlStateNormal];
-        if ([delegate respondsToSelector:@selector(numberKeyboard:shouldInsertText:)]) {
-            BOOL shouldInsert = [delegate numberKeyboard:self shouldInsertText:decimalText];
-            if (!shouldInsert) {
-                return;
-            }
-        }
-        
-        [keyInput insertText:decimalText];
-    }
 }
 
 - (void)_backspaceRepeat:(UIButton *)button
@@ -340,48 +301,6 @@ static const CGFloat MMNumberKeyboardPadSpacing = 8.0f;
 }
 
 #pragma mark - Public.
-
-- (void)configureSpecialKeyWithImage:(UIImage *)image actionHandler:(dispatch_block_t)handler
-{
-    if (image) {
-        self.specialKeyHandler = handler;
-    } else {
-        self.specialKeyHandler = NULL;
-    }
-    
-    UIButton *button = self.buttonDictionary[@(MMNumberKeyboardButtonSpecial)];
-    [button setImage:image forState:UIControlStateNormal];
-}
-
-- (void)configureSpecialKeyWithImage:(UIImage *)image target:(id)target action:(SEL)action
-{
-    __weak typeof(self)weakTarget = target;
-    __weak typeof(self)weakSelf = self;
-    
-    [self configureSpecialKeyWithImage:image actionHandler:^{
-        __strong __typeof(&*weakTarget)strongTarget = weakTarget;
-        __strong __typeof(&*weakSelf)strongSelf = weakSelf;
-        
-        if (strongTarget) {
-            NSMethodSignature *methodSignature = [strongTarget methodSignatureForSelector:action];
-            NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:methodSignature];
-            [invocation setSelector:action];
-            if (methodSignature.numberOfArguments > 2) {
-                [invocation setArgument:&strongSelf atIndex:2];
-            }
-            [invocation invokeWithTarget:strongTarget];
-        }
-    }];
-}
-
-- (void)setAllowsDecimalPoint:(BOOL)allowsDecimalPoint
-{
-    if (allowsDecimalPoint != _allowsDecimalPoint) {
-        _allowsDecimalPoint = allowsDecimalPoint;
-        
-        [self setNeedsLayout];
-    }
-}
 
 - (void)setReturnKeyTitle:(NSString *)title
 {
@@ -456,7 +375,6 @@ NS_INLINE CGRect MMButtonRectMake(CGRect rect, CGRect contentRect, UIUserInterfa
     const UIUserInterfaceIdiom interfaceIdiom = UI_USER_INTERFACE_IDIOM();
     const CGFloat spacing = (interfaceIdiom == UIUserInterfaceIdiomPad) ? MMNumberKeyboardPadBorder : 0.0f;
     const CGFloat maximumWidth = (interfaceIdiom == UIUserInterfaceIdiomPad) ? 400.0f : CGRectGetWidth(bounds);
-    const BOOL allowsDecimalPoint = self.allowsDecimalPoint;
     
     const CGFloat width = MIN(maximumWidth, CGRectGetWidth(bounds));
     const CGRect contentRect = (CGRect){
@@ -467,7 +385,7 @@ NS_INLINE CGRect MMButtonRectMake(CGRect rect, CGRect contentRect, UIUserInterfa
     };
     
     // Layout.
-    const CGFloat columnWidth = CGRectGetWidth(contentRect) / 4.0f;
+    const CGFloat columnWidth = CGRectGetWidth(contentRect) / 3.0f;
     const CGFloat rowHeight = MMNumberKeyboardRowHeight;
     
     CGSize numberSize = CGSizeMake(columnWidth, rowHeight);
@@ -485,13 +403,9 @@ NS_INLINE CGRect MMButtonRectMake(CGRect rect, CGRect contentRect, UIUserInterfa
         CGRect rect = (CGRect){ .size = numberSize };
         
         if (digit == 0) {
+            
             rect.origin.y = numberSize.height * 3;
             rect.origin.x = numberSize.width;
-            
-            if (!allowsDecimalPoint) {
-                rect.size.width = numberSize.width * 2.0f;
-                [button setContentEdgeInsets:UIEdgeInsetsMake(0, 0, 0, numberSize.width)];
-            }
             
         } else {
             NSUInteger idx = (digit - 1);
@@ -506,48 +420,24 @@ NS_INLINE CGRect MMButtonRectMake(CGRect rect, CGRect contentRect, UIUserInterfa
         [button setFrame:MMButtonRectMake(rect, contentRect, interfaceIdiom)];
     }
     
-    // Layout special key.
-    UIButton *specialKey = buttonDictionary[@(MMNumberKeyboardButtonSpecial)];
-    if (specialKey) {
-        CGRect rect = (CGRect){ .size = numberSize };
-        rect.origin.y = numberSize.height * 3;
-        
-        [specialKey setFrame:MMButtonRectMake(rect, contentRect, interfaceIdiom)];
-    }
+    // Layout backspace key.
+    UIButton *backspaceKey = buttonDictionary[@(MMNumberKeyboardButtonBackspace)];
+    CGRect backspaceRect = (CGRect){ .size = numberSize };
+    backspaceRect.origin.y = numberSize.height * 3;
+    [backspaceKey setFrame:MMButtonRectMake(backspaceRect, contentRect, interfaceIdiom)];
     
     // Layout decimal point.
-    UIButton *decimalPointKey = buttonDictionary[@(MMNumberKeyboardButtonDecimalPoint)];
-    if (decimalPointKey) {
-        CGRect rect = (CGRect){ .size = numberSize };
-        rect.origin.y = numberSize.height * 3;
-        rect.origin.x = numberSize.width * 2;
-        
-        [decimalPointKey setFrame:MMButtonRectMake(rect, contentRect, interfaceIdiom)];
-        
-        decimalPointKey.hidden = !allowsDecimalPoint;
-    }
-    
-    // Layout utility column.
-    const int utilityButtonKeys[2] = { MMNumberKeyboardButtonBackspace, MMNumberKeyboardButtonDone };
-    const CGSize utilitySize = CGSizeMake(columnWidth, rowHeight * 2.0f);
-    
-    for (NSInteger idx = 0; idx < sizeof(utilityButtonKeys) / sizeof(int); idx++) {
-        MMNumberKeyboardButton key = utilityButtonKeys[idx];
-        
-        UIButton *button = buttonDictionary[@(key)];
-        CGRect rect = (CGRect){ .size = utilitySize };
-        
-        rect.origin.x = columnWidth * 3.0f;
-        rect.origin.y = idx * utilitySize.height;
-        
-        [button setFrame:MMButtonRectMake(rect, contentRect, interfaceIdiom)];
-    }
+    UIButton *doneKey = buttonDictionary[@(MMNumberKeyboardButtonDone)];
+    CGRect doneRect = (CGRect){ .size = numberSize };
+    doneRect.origin.y = numberSize.height * 3;
+    doneRect.origin.x = numberSize.width * 2;
+    [doneKey setFrame:MMButtonRectMake(doneRect, contentRect, interfaceIdiom)];
     
     // Layout separators if phone.
     if (interfaceIdiom != UIUserInterfaceIdiomPad) {
         NSMutableArray *separatorViews = self.separatorViews;
         
-        const NSUInteger totalColumns = 4;
+        const NSUInteger totalColumns = 3;
         const NSUInteger totalRows = numbersPerLine + 1;
         const NSUInteger numberOfSeparators = totalColumns + totalRows - 1;
         
@@ -579,23 +469,14 @@ NS_INLINE CGRect MMButtonRectMake(CGRect rect, CGRect contentRect, UIUserInterfa
             
             if (idx < totalRows) {
                 rect.origin.y = idx * rowHeight;
-                if (idx % 2) {
-                    rect.size.width = CGRectGetWidth(contentRect) - columnWidth;
-                } else {
-                    rect.size.width = CGRectGetWidth(contentRect);
-                }
+                rect.size.width = CGRectGetWidth(contentRect);
                 rect.size.height = separatorDimension;
             } else {
                 NSInteger col = (idx - totalRows);
                 
                 rect.origin.x = (col + 1) * columnWidth;
                 rect.size.width = separatorDimension;
-                
-                if (col == 1 && !allowsDecimalPoint) {
-                    rect.size.height = CGRectGetHeight(contentRect) - rowHeight;
-                } else {
-                    rect.size.height = CGRectGetHeight(contentRect);
-                }
+                rect.size.height = CGRectGetHeight(contentRect);
             }
             
             [separator setFrame:MMButtonRectMake(rect, contentRect, interfaceIdiom)];

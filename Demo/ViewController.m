@@ -25,7 +25,6 @@
     
     // Create and configure the keyboard.
     MMNumberKeyboard *keyboard = [[MMNumberKeyboard alloc] initWithFrame:CGRectZero];
-    keyboard.allowsDecimalPoint = YES;
     keyboard.delegate = self;
     
     // Configure an example UITextField.

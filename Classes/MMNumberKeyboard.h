@@ -95,30 +95,6 @@ typedef NS_ENUM(NSUInteger, MMNumberKeyboardButtonStyle) {
 @property (weak, nonatomic) id <MMNumberKeyboardDelegate> delegate;
 
 /**
- *  Configures the special key with an image and an action block.
- *
- *  @param image   The image to display in the key.
- *  @param handler A handler block.
- */
-- (void)configureSpecialKeyWithImage:(UIImage *)image actionHandler:(dispatch_block_t)handler;
-
-/**
- *  Configures the special key with an image and a target-action.
- *
- *  @param image  The image to display in the key.
- *  @param target The target object—that is, the object to which the action message is sent.
- *  @param action A selector identifying an action message. It cannot be NULL.
- */
-- (void)configureSpecialKeyWithImage:(UIImage *)image target:(id)target action:(SEL)action;
-
-/**
- *  If @c YES, the decimal separator key will be displayed.
- *
- *  @note The default value of this property is @c NO.
- */
-@property (assign, nonatomic) BOOL allowsDecimalPoint;
-
-/**
  *  The visible title of the Return key.
  *
  *  @note The default visible title of the Return key is “Done”.
