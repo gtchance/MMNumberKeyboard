@@ -103,12 +103,7 @@ static const CGFloat MMNumberKeyboardPadSpacing = 8.0f;
     const NSInteger numberMin = MMNumberKeyboardButtonNumberMin;
     const NSInteger numberMax = MMNumberKeyboardButtonNumberMax;
     
-    UIFont *buttonFont;
-    if ([UIFont respondsToSelector:@selector(systemFontOfSize:weight:)]) {
-        buttonFont = [UIFont systemFontOfSize:28.0f weight:UIFontWeightLight];
-    } else {
-        buttonFont = [UIFont fontWithName:@"HelveticaNeue-Light" size:28.0f];
-    }
+    UIFont *buttonFont = [UIFont systemFontOfSize:28.0f];
     
     UIFont *doneButtonFont = [UIFont systemFontOfSize:17.0f];
     
