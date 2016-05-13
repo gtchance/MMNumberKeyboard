@@ -10,6 +10,6 @@ Pod::Spec.new do |s|
   s.framework  = 'QuartzCore'
   s.requires_arc = true
   s.source_files = 'Classes/*.{h,m}'
-  s.resources = 'Images/*.png'
+  s.resource_bundle = { 'MMNumberKeyboard' => 'Images/*.png' }
  end
  

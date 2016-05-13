@@ -122,10 +122,13 @@ static const CGFloat MMNumberKeyboardPadSpacing = 8.0f;
         [buttonDictionary setObject:button forKey:@(key)];
     }
     
-    UIImage *backspaceImage = [self.class _keyboardImageNamed:@"MMNumberKeyboardDeleteKey.png"];
-    
     UIButton *backspaceButton = [_MMNumberKeyboardButton keyboardButtonWithStyle:MMNumberKeyboardButtonStyleGray];
-    [backspaceButton setImage:[backspaceImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate] forState:UIControlStateNormal];
+    
+    UIImage *backspaceNormal = [self.class _keyboardImageNamed:@"BackspaceIcon"];
+    [backspaceButton setImage:[backspaceNormal imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate] forState:UIControlStateNormal];
+    
+    UIImage *backspaceHighlighted = [self.class _keyboardImageNamed:@"BackspaceHighlightedIcon"];
+    [backspaceButton setImage:[backspaceHighlighted imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate] forState:UIControlStateHighlighted];
     
     [(_MMNumberKeyboardButton *)backspaceButton addTarget:self action:@selector(_backspaceRepeat:) forContinuousPressWithTimeInterval:0.15f];
     
@@ -515,20 +518,21 @@ NS_INLINE CGRect MMButtonRectMake(CGRect rect, CGRect contentRect, UIUserInterfa
 
 + (UIImage *)_keyboardImageNamed:(NSString *)name
 {
-    NSString *resource = [name stringByDeletingPathExtension];
-    NSString *extension = [name pathExtension];
+
+    NSBundle *podBundle = [NSBundle bundleForClass:[self class]];
+    NSURL *url = [podBundle URLForResource:@"MMNumberKeyboard" withExtension:@"bundle"];
     
-    if (resource) {
-        NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+    if (url) {
+    
+        NSBundle * bundle = [NSBundle bundleWithURL:url];
         if (bundle) {
-            NSString *resourcePath = [bundle pathForResource:resource ofType:extension];
-            
-            return [UIImage imageWithContentsOfFile:resourcePath];
-        } else {
-            return [UIImage imageNamed:name];
+            return [UIImage imageNamed:name inBundle:bundle compatibleWithTraitCollection:nil];
         }
+    
     }
-    return nil;
+    
+    return [UIImage imageNamed:name];
+    
 }
 
 @end
