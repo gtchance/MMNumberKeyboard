@@ -1,3 +1,5 @@
+Key change: Adding UIControlEventEditingDidEndOnExit event
+
 # MMNumberKeyboard
 A simple keyboard to use with numbers and, optionally, a decimal point.
 
